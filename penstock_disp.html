@@ -124,6 +124,7 @@
         <label class="drop" id="drop">
           <div class="big">動画をドロップ</div>
           <div>またはクリックして選択（mp4 / webm / mov など）</div>
+          <div style="font-size:11px;opacity:.75;margin-top:4px">iPhone標準形式（HEVC）は Edge 推奨</div>
           <input type="file" id="file" accept="video/*">
         </label>
         <div class="status" id="vidInfo">未読込</div>
@@ -715,7 +716,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 /* ============================================================
    OpenCV ready — 複数CDNを順に試す
 ============================================================ */
-const APP_VER='v2026-10-09 (penstock_disp に改名・読込開始の補正を欄に反映)';
+const APP_VER='v2026-10-10 (HEVC動画は Edge 推奨の案内を追加)';
 const OCV_CDNS=[
   "https://docs.opencv.org/4.10.0/opencv.js",
   "https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js",
@@ -867,7 +868,7 @@ async function loadVideoFile(f){
   // <video> が再生できないコーデック（iPhone標準の HEVC 等）は縦横が 0x0 になる
   const noNativeDecode=(!VW||!VH);
   if(noNativeDecode){
-    log('[load] ブラウザの標準再生（video要素）がこの動画をデコードできません（0x0）。iPhone標準の HEVC(H.265) の可能性が高いです。WebCodecs 直接デコードを試します…','er');
+    log('[load] ブラウザの標準再生（video要素）がこの動画をデコードできません（0x0）。iPhone標準の HEVC(H.265) の可能性が高いです（Chrome で読めない場合は Edge で開くと読めることがあります）。WebCodecs 直接デコードを試します…','er');
   }else{
     SRC_W=VW; SRC_H=VH;
     applyCropOrCap();   // 原寸切り出し or 処理解像度の長辺上限
@@ -957,12 +958,14 @@ async function loadVideoFile(f){
     if(noNativeDecode){
       // <video> も WebCodecs も不可 → 従来方式に落としても永遠に進まないため、明確に案内して終了
       log('=== この動画は変換されませんでした ===','er');
-      log('ブラウザ内ソフトウェアデコード（確認ダイアログでOK）を使うか、次のいずれかで恒久対応できます:','hi');
-      log(' ① Windows: Microsoft Store で「HEVC ビデオ拡張機能」をインストール（再起動後に Chrome/Edge で再生可能になる場合があります）','hi');
+      log('次のいずれかで対応できます（上から順におすすめ）:','hi');
+      log(' ⓪ Edge で開き直す：Chrome で読めなくても、Windows の HEVC デコーダを使う Edge では読めることが多いです','hi');
+      log(' ① Windows: Microsoft Store で「HEVC ビデオ拡張機能」をインストール（ブラウザ再起動後に Edge で再生可能になります。Chrome は GPU によっては不可）','hi');
       log(' ② iPhone側: 設定 → カメラ → フォーマット → 「互換性優先」にして撮影すると H.264 になり、どのPCでも読めます（今後の撮影におすすめ）','hi');
       log(' ③ 変換: ffmpeg -i 入力.MOV -c:v libx264 -pix_fmt yuv420p -an 出力.mp4','hi');
       log(' ④ iPhoneの Safari でこのページを開けばそのまま解析できます（HEVC対応のため）','hi');
-      $('vidInfo').innerHTML='<span style="color:var(--warn)">読込不可: HEVC(H.265) 非対応環境です。ログの対処法を参照してください</span>';
+      log(' ⑤ 最終手段：ブラウザ内ソフトウェアデコード（確認ダイアログでOK。遅く、長い動画ではメモリ不足で止まることがあります）','hi');
+      $('vidInfo').innerHTML='<span style="color:var(--warn)">読込不可: HEVC(H.265) 非対応環境です。<b>Edge で開き直してください</b>（iPhone は「互換性優先」で撮影すると Chrome でも読めます）。詳細はログ</span>';
       $('loadbar').style.width='0';
       URL.revokeObjectURL(url); refreshButtons(); return;
     }
@@ -1227,6 +1230,7 @@ async function extractByFFmpeg(f,fpsUse,trimS,trimE){
 
 ・初回のみデコーダの取得に少し時間がかかります
 ・変換はソフトウェア処理のため、5秒の区間で数十秒〜数分かかることがあります
+※ Chrome をお使いなら、キャンセルして Edge で開き直す方が速く確実です
 （恒久対策は、Windowsの「HEVC ビデオ拡張機能」導入、または iPhone の
 　設定→カメラ→フォーマット→互換性優先 での撮影をおすすめします）
 
